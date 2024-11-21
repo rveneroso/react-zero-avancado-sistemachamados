@@ -6,18 +6,19 @@ import { FiPlusCircle } from 'react-icons/fi';
 
 import { AuthContext } from '../../contexts/auth';
 import { db } from '../../services/firebaseConnection';
-import { collection, getDocs, addDoc, getDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, getDoc, doc, updateDoc } from 'firebase/firestore';
 
 import './new.css';
 
 import { toast } from 'react-toastify';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 const listRef = collection(db, "customers");
 
 export default function New() {
     const { user } = useContext(AuthContext);
     const { id } = useParams();
+    const navigate = useNavigate();
 
     const[customers, setCustomers] = useState([]);
     const[loadCustomer, setLoadCustomer] = useState(true);
@@ -100,7 +101,25 @@ async function loadId(lista) {
         e.preventDefault();
 
         if(idCustomer) {
-            alert("EDITANDO CHAMADOS");
+            const docRef = doc(db, "chamados", id)
+            await updateDoc(docRef, {
+                cliente: customers[customerSelected].nomeFantasia,
+                clienteId: customers[customerSelected].id,
+                assunto: assunto,
+                complemento: complemento,
+                status: status,
+                userId: user.uid,
+            })
+            .then(() => {
+                toast.info("Chamado atualizado com sucesso!")
+                setCustomerSelected(0);
+                setComplemento('');
+                navigate('/dashboard')
+            })
+            .catch(() => {
+                toast.error("Ocorreu um erro ao tentar atualizar esse chamado!")
+            })
+
             return;
         }
 
@@ -128,7 +147,7 @@ async function loadId(lista) {
         <div>
             <Header/>
             <div className="content">
-                <Title name="Novo ticket">
+                <Title name={id ? "Editando Ticket" : "Novo ticket"}>
                     <FiPlusCircle size={25}/>
                 </Title>
 
