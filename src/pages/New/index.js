@@ -11,21 +11,26 @@ import { collection, getDocs, addDoc, getDoc, doc } from 'firebase/firestore';
 import './new.css';
 
 import { toast } from 'react-toastify';
+import { useParams } from 'react-router-dom';
 
 const listRef = collection(db, "customers");
 
 export default function New() {
     const { user } = useContext(AuthContext);
+    const { id } = useParams();
 
     const[customers, setCustomers] = useState([]);
     const[loadCustomer, setLoadCustomer] = useState(true);
     const[customerSelected, setCustomerSelected] = useState(0);
+    const[idCustomer, setIdCustomer] = useState(false);
+
 
     const [complemento, setComplemento] = useState('');
     const [assunto, setAssunto] = useState('Suporte');
     const [status, setStatus] = useState('Aberto');
 
     useEffect(() => {
+        console.log(id);
         async function loadCustomers() {
             const querySnapshot = await getDocs(listRef)
             .then( (snapshot) => {
@@ -47,6 +52,10 @@ export default function New() {
 
                 setCustomers(lista);
                 setLoadCustomer(false);
+
+                if(id) {
+                    loadId(lista);
+                }
             })
             .catch( (error) => {
                 console.log("Erro ao carregar lista de clientes")
@@ -55,7 +64,25 @@ export default function New() {
             })
         }
         loadCustomers();
-    }, [])
+    }, [id])
+
+async function loadId(lista) {
+    const docRef = doc(db, "chamados", id);
+    await getDoc(docRef)
+    .then((snapshot) => {
+        setAssunto(snapshot.data().assunto)
+        setStatus(snapshot.data().status)
+        setComplemento(snapshot.data().complemento);
+
+        let index = lista.findIndex(item => item.id === snapshot.data().clienteId);
+        setCustomerSelected(index);
+        setIdCustomer(true);
+    })
+    .catch((error) => {
+        toast.error("Não foi possível encontrar o chamado com o id informado");
+        setIdCustomer(false);
+    })
+}
 
     function handleOptionChange(e) {
         setStatus(e.target.value);
@@ -71,6 +98,11 @@ export default function New() {
 
     async function handleRegister(e) {
         e.preventDefault();
+
+        if(idCustomer) {
+            alert("EDITANDO CHAMADOS");
+            return;
+        }
 
         await addDoc(collection(db,"chamados"), {
             created: new Date(),
